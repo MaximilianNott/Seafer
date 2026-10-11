@@ -1,0 +1,444 @@
+{
+  "name": "Vietnamese Law Data Scraper",
+  "nodes": [
+    {
+      "parameters": {
+        "url": "https://en.baochinhphu.vn/policies.htm",
+        "options": {
+          "allowUnauthorizedCerts": true,
+          "proxy": ""
+        }
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [
+        208,
+        0
+      ],
+      "id": "2969a3c1-cb53-4e93-afdc-90c3957e22e0",
+      "name": "HTTP Request",
+      "retryOnFail": true
+    },
+    {
+      "parameters": {
+        "operation": "extractHtmlContent",
+        "extractionValues": {
+          "values": [
+            {
+              "key": "policy_title",
+              "cssSelector": "h3 a"
+            },
+            {
+              "key": "link",
+              "cssSelector": "h3 a",
+              "returnValue": "attribute",
+              "attribute": "href"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.html",
+      "typeVersion": 1.2,
+      "position": [
+        416,
+        0
+      ],
+      "id": "56244b99-a36e-402a-b1d7-3daa053334a5",
+      "name": "HTML"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "6f4965f1-d921-4af5-bb17-3ddb23239293",
+              "name": "full_url",
+              "value": "=baochinhphu.vn{{ $json.link }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        592,
+        0
+      ],
+      "id": "7987595d-6c68-4e7b-8a10-26beab0f88d4",
+      "name": "Edit Fields"
+    },
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "triggerAtHour": 9
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.3,
+      "position": [
+        16,
+        0
+      ],
+      "id": "7df87eab-6498-460e-9fc3-d2863f0ab6b6",
+      "name": "Schedule Trigger"
+    },
+    {
+      "parameters": {
+        "operation": "clearDeduplicationHistory",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.removeDuplicates",
+      "typeVersion": 2,
+      "position": [
+        768,
+        0
+      ],
+      "id": "916aecb7-3702-4aa2-8796-fda55257e60d",
+      "name": "Remove Duplicates",
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "=Analyze the following newly crawled Vietnamese government update for legal changes:\n\nTitle: {{ $('Remove Duplicates').item.json.policy_title }}\nSource Link: https://{{ $('Remove Duplicates').item.json.full_url }}\n\nFull Article Content:\n{{ $json.article_body }}\n\nExtract the relevant text arrays and perform the legal analysis requested in your system configuration instructions.\n\nOUTPUT FORMAT AND LENGTH CONSTRAINTS (STRICT):\n1. The entire response MUST be under 400 words total (approximately 2,500 characters).\n2. Use a maximum of 3-5 bullet points for the analysis.\n3. Keep each bullet point under 2 short sentences.\n4. Do not include introductory text (e.g., \"Here is your analysis\") or concluding text. Start directly with the analysis.\n\n\n",
+        "options": {
+          "systemMessage": "=You are an expert legal analyst specializing in Vietnamese Regulatory Compliance, Governmental Decrees, and Public Policies, with a strict focus on Foreign Direct Investment (FDI) frameworks. Your primary objective is to parse raw text notifications from en.baochinhphu.vn, filter out macro-economic noise, and isolate explicit operational risks for foreign investors.\n\nAnalyze the provided article and generate a highly structured compliance report following this exact format:\n\n🚨 **LEGAL UPDATE**: [Translate title to clean, professional English highlighting the FDI angle]\n📅 **Effective Date**: [Identify the date the decree/law takes effect. If unknown, state \"Not specified\"]\n🔗 **Source**: [Provide the link]\n\n⚖️ **SUMMARY OF REGULATORY CHANGES**\n• [Bullet 1: Summarize the core structural change introduced by the new law or decree]\n• [Bullet 2: Contrast what changed from previous rules or old frameworks, explicitly highlighting foreign ownership, capital structures, or compliance shifts]\n• [Bullet 3: Note any compliance deadlines, transitional windows, or sandbox testing buffers mentioned]\n\n🏢 **AFFECTED SECTORS & OPERATIONS**\n• **Target Industries**: [List ONLY the top 2-3 specific industries facing structural impacts. Do not list general or unimpacted sectors]\n• **Operational Impact**: [Briefly explain how foreign corporate operations are affected, focusing on data governance, capital repatriation, withholding taxes, or licensing mandates]\n\n⚠️ **INVESTOR ACTION ITEM**\n• [Provide exactly 1 clear, actionable next step for a foreign corporate legal or compliance officer based on this update]\n\nOutput your response using clean, compliant Markdown formatting so it renders perfectly inside a Telegram channel notification. Do not include any conversational preamble or sign-off text.\n"
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 3.1,
+      "position": [
+        368,
+        240
+      ],
+      "id": "1e2d37ae-0d56-4e13-a372-14a34533787a",
+      "name": "AI Agent",
+      "retryOnFail": true,
+      "waitBetweenTries": 5000
+    },
+    {
+      "parameters": {
+        "modelName": "models/gemini-2.5-flash",
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatGoogleGemini",
+      "typeVersion": 1.1,
+      "position": [
+        368,
+        480
+      ],
+      "id": "211722e6-49fd-4186-a2e6-166c60dc3e1f",
+      "name": "Google Gemini Chat Model",
+      "credentials": {
+        "googlePalmApi": {
+          "id": "VmLkjeRIXiC2PXYa",
+          "name": "Google Gemini(PaLM) Api account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "url": "=https://{{ $json.full_url }}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [
+        48,
+        240
+      ],
+      "id": "4117295d-a998-4add-9396-512afb96b0ed",
+      "name": "HTTP Request1"
+    },
+    {
+      "parameters": {
+        "operation": "extractHtmlContent",
+        "extractionValues": {
+          "values": [
+            {
+              "key": "article_body",
+              "cssSelector": "article, .detail-content, .cms-body"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.html",
+      "typeVersion": 1.2,
+      "position": [
+        208,
+        240
+      ],
+      "id": "d2665423-826d-4f9f-9514-20df38ff243f",
+      "name": "HTML1"
+    },
+    {
+      "parameters": {},
+      "type": "n8n-nodes-base.errorTrigger",
+      "typeVersion": 1,
+      "position": [
+        688,
+        448
+      ],
+      "id": "e5894e6f-4781-4451-bd65-b69380f45d1e",
+      "name": "Error Trigger"
+    },
+    {
+      "parameters": {
+        "chatId": "8959383095",
+        "text": "=🚨 WARNING: The Vietnamese Law Scraper workflow has failed after 3 attempts. The target website might be down. Error Details: {{ $json.execution.error.message }}",
+        "additionalFields": {
+          "parse_mode": "HTML"
+        }
+      },
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        896,
+        448
+      ],
+      "id": "c50251d4-6937-4488-863a-f41237b6e4e9",
+      "name": "Send a text message1",
+      "webhookId": "5a5b2b5e-3bde-4c61-8dbc-47691207fcc2",
+      "credentials": {
+        "telegramApi": {
+          "id": "FPAHmtXddGKO4YA1",
+          "name": "Telegram account 2"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "resume": "webhook",
+        "limitWaitTime": true,
+        "resumeAmount": 24,
+        "options": {
+          "binaryPropertyName": "data",
+          "ignoreBots": false,
+          "ipWhitelist": "",
+          "noResponseBody": false,
+          "rawBody": false,
+          "responseData": "Your FDI legal update has been successfully verified and published to Telegram and Email channels.",
+          "webhookSuffix": "approve_fdi_update"
+        }
+      },
+      "type": "n8n-nodes-base.wait",
+      "typeVersion": 1.1,
+      "position": [
+        896,
+        240
+      ],
+      "id": "000a758a-32e4-4184-8838-65c4a0e9aafe",
+      "name": "Wait",
+      "webhookId": "5ec1264d-a76a-446c-b7d8-c7e1192f35f6"
+    },
+    {
+      "parameters": {
+        "chatId": "8959383095",
+        "text": "=={{\"🔔 <b>NEW FDI LEGAL UPDATE DRAFT</b>\\n\\n\" + $json.output + \"\\n\\n👇 <b>Read the draft above. If it is accurate, tap the link below to publish it live to your channel:</b>\\n\\n🔗 <b>Approval Link:</b> \" + $execution.resumeUrl.replace('localhost', '127.0.0.1')}}\n\n\n",
+        "additionalFields": {
+          "parse_mode": "HTML"
+        }
+      },
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        688,
+        240
+      ],
+      "id": "1c1a010e-ddc5-41dd-b7fc-2e366b4bef4d",
+      "name": "Private",
+      "webhookId": "5a5b2b5e-3bde-4c61-8dbc-47691207fcc2",
+      "credentials": {
+        "telegramApi": {
+          "id": "FPAHmtXddGKO4YA1",
+          "name": "Telegram account 2"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "chatId": "8959383095",
+        "text": "={{ $(\"AI Agent\").first().json.output }}\n",
+        "additionalFields": {
+          "parse_mode": "HTML"
+        }
+      },
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        1088,
+        240
+      ],
+      "id": "394e7a61-7861-41f8-8ed3-26a432ae65b7",
+      "name": "Public",
+      "webhookId": "5a5b2b5e-3bde-4c61-8dbc-47691207fcc2",
+      "credentials": {
+        "telegramApi": {
+          "id": "FPAHmtXddGKO4YA1",
+          "name": "Telegram account 2"
+        }
+      }
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "HTTP Request": {
+      "main": [
+        [
+          {
+            "node": "HTML",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "HTML": {
+      "main": [
+        [
+          {
+            "node": "Edit Fields",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Edit Fields": {
+      "main": [
+        [
+          {
+            "node": "Remove Duplicates",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Schedule Trigger": {
+      "main": [
+        [
+          {
+            "node": "HTTP Request",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Remove Duplicates": {
+      "main": [
+        [
+          {
+            "node": "HTTP Request1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "AI Agent": {
+      "main": [
+        [
+          {
+            "node": "Private",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Google Gemini Chat Model": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "HTTP Request1": {
+      "main": [
+        [
+          {
+            "node": "HTML1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "HTML1": {
+      "main": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Error Trigger": {
+      "main": [
+        [
+          {
+            "node": "Send a text message1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Public": {
+      "main": [
+        []
+      ]
+    },
+    "Private": {
+      "main": [
+        [
+          {
+            "node": "Wait",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Wait": {
+      "main": [
+        [
+          {
+            "node": "Public",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate"
+  },
+  "versionId": "bb4c5bf5-b2ab-41bb-aff0-ea344573dd7c",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "49b802d25cb9716ae110a20dd873c9aaba6610957805c17164b80066578fce99"
+  },
+  "nodeGroups": [],
+  "id": "j1nel6tUWToCHXqE",
+  "tags": []
+}

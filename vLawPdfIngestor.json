@@ -1,0 +1,211 @@
+{
+  "name": "Vietnamese Law Data Scraper",
+  "nodes": [
+    {
+      "parameters": {
+        "modelName": "models/gemini-2.5-flash",
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatGoogleGemini",
+      "typeVersion": 1.1,
+      "position": [
+        1216,
+        400
+      ],
+      "id": "6a299f04-8963-4056-86ae-759876079e95",
+      "name": "Google Gemini Chat Model",
+      "credentials": {
+        "googlePalmApi": {
+          "id": "a9eoCBJF7pGzpxrv",
+          "name": "Google Gemini(PaLM) Api account 2"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "=You are an elite enterprise RegTech compliance auditor specializing in cross-border trade framework verification and Vietnamese national regulatory tracking.\n\nYour mission is to perform a high-precision multi-stage audit over the attached live raw text data stream captured from the Vietnamese Official Gazette (Công Báo). Identify brand-new decrees, circulars, or decisions enacted or published this week, and map their immediate operational impacts while enforcing strict anti-drift guardrails.\n\nEXECUTE THESE THREE ARCHITECTURAL AUDIT STAGES IN SEQUENCE INTERNAL MEMORY:\n\n🕵️‍♂️ STAGE 1: SIGNAL EXTRACTION\n- Extract the absolute newest 2026 legal decrees, document sign numbers (Số ký hiệu), and official titles.\n- Isolate any specific operational modifications regarding foreign ownership caps, manufacturing parameters, tech transfer boundaries, data localization rules, or corporate capital entry thresholds.\n\n🔗 STAGE 2: REFERENCE ISOLATION & ANCHORING (CRITICAL ANTI-DRIFT GATE)\n- ANTI-HALLUCINATION PROTOCOL: For every operational risk or compliance parameter you identify, you MUST explicitly cite the exact Article, Section, or Clause number from the source text. Never state a risk without anchoring it to a hard source location code (e.g., \"[Article 4, Clause 2]\").\n- CROSS-REFERENCE LOCK: Every time the text references an external foundational law (e.g., \"Pursuant to Law No. X/YYYY/QH...\"), isolate it into a dedicated array block titled \"🔗 Required External Dependencies\". Do not guess or extrapolate its implications. If the true impact is hidden behind that unread reference, explicitly state: \"Pending downstream cross-reference analysis of [Law Number].\"\n\n✍️ STAGE 3: EXECUTIVE FEEDS SYNTHESIS\n- Compile the verified data into a crisp, high-signal, corporate compliance notification brief.\n- The output must be strictly under 400 words total, formatted in clean Markdown, and optimized for an executive Telegram channel review queue.\n\n-----------------------------------------------------------------------\nRAW GAZETTE DATA INPUT STREAM:\n{{ $json.text }}\n-----------------------------------------------------------------------\n\nOUTPUT CONFIGURATION SCHEMA (Strictly adhere to this layout structure):\n\n📜 **[Insert Official Law Title Here]**\n🔢 **Reference Code:** [Insert Số ký hiệu Here]\n📅 *Timeline: Published September 2026 (Live Gazette Stream)*\n\n🚨 **CORE FDI OPERATIONAL IMPACTS & RISKS:**\n- [Insert clear risk metric bullet points - MUST cite exact structural clause anchors, e.g., (Art. 5.1)]\n\n🔗 **REQUIRED EXTERNAL DEPENDENCIES:**\n- [Insert isolated cross-referenced laws that require backend compliance mapping]\n\n🎯 **REGTECH MATRIC DIRECTIVE:**\n- [Insert a 1-sentence sharp compliance instruction line for multinational corporate operators]\n",
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 3.1,
+      "position": [
+        1216,
+        192
+      ],
+      "id": "d559742b-45e8-492a-9b9a-52a45daa558b",
+      "name": "AI Agent",
+      "retryOnFail": true
+    },
+    {
+      "parameters": {
+        "sendTo": "Maximiliannott@gmail.com",
+        "subject": "={{ $json.text ? \"⚖️ Live RegTech Alert: New Decree Enacted\" : \"🚨 New Vietnam Legal Decree Enacted\" }}\n",
+        "emailType": "text",
+        "message": "={{ $json.output }}\n\n",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2.2,
+      "position": [
+        1568,
+        192
+      ],
+      "id": "1e7319ba-4ae4-4078-81dc-d170683c49aa",
+      "name": "Send a message",
+      "webhookId": "0ae8aef8-5d99-4c16-8c2d-7a12eedf5403",
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "53CDuGvt8Ge12e6b",
+          "name": "Gmail account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "formTitle": "FDI Regulatory Document Portal",
+        "formDescription": "Upload official signed Vietnamese gazette PDFs for multi-stage compliance auditing.",
+        "formFields": {
+          "values": [
+            {
+              "fieldLabel": "uploadGazettePdf",
+              "fieldType": "file",
+              "requiredField": true
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.formTrigger",
+      "typeVersion": 2.6,
+      "position": [
+        752,
+        192
+      ],
+      "id": "78c3c4b1-46c0-4c07-b7e6-391890d12d5e",
+      "name": "On form submission",
+      "webhookId": "26936dac-4723-4d26-aaf6-3a08f685816e"
+    },
+    {
+      "parameters": {
+        "operation": "pdf",
+        "binaryPropertyName": "uploadGazettePdf",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.extractFromFile",
+      "typeVersion": 1.1,
+      "position": [
+        992,
+        192
+      ],
+      "id": "e57c7475-64a1-4909-b0da-96d3803bce58",
+      "name": "Extract from File"
+    },
+    {
+      "parameters": {},
+      "type": "n8n-nodes-base.errorTrigger",
+      "typeVersion": 1,
+      "position": [
+        752,
+        384
+      ],
+      "id": "be6d063e-c68e-4100-bae0-3965e762f9a1",
+      "name": "Error Trigger"
+    },
+    {
+      "parameters": {
+        "sendTo": "Maximiliannott@gmail.com",
+        "subject": "=⚠️ REGTECH PIPELINE ALERT: System Failover Triggered\n\n",
+        "emailType": "text",
+        "message": "The automated Vietnamese Law Tracker pipeline encountered an external infrastructure exception.\n\n🚨 SYSTEM ERROR TRACE:\n{{ $json.execution?.error?.message || \"Gemini API 503: High Traffic Demand Spike\" }}\n\n💡 ARCHITECTURAL RETRY STATUS:\nThe workflow's native 4-stage retry buffer attempted to bypass the traffic spike. Because this emergency alert has been fired, the external API outage has outlasted our local healing thresholds.\n\n🎯 ACTION REQUIRED:\n1. Log into your self-hosted terminal dashboard at http://localhost:5678.\n2. Verify your Gemini API credentials status.\n3. Re-open your secure local Drop-Zone portal and re-submit the target document.\n\n",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2.2,
+      "position": [
+        992,
+        384
+      ],
+      "id": "180a54d6-24c1-45f5-9205-187ef95478e6",
+      "name": "Send a message1",
+      "webhookId": "0ae8aef8-5d99-4c16-8c2d-7a12eedf5403",
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "53CDuGvt8Ge12e6b",
+          "name": "Gmail account"
+        }
+      }
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Google Gemini Chat Model": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "AI Agent": {
+      "main": [
+        [
+          {
+            "node": "Send a message",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "On form submission": {
+      "main": [
+        [
+          {
+            "node": "Extract from File",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Extract from File": {
+      "main": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Error Trigger": {
+      "main": [
+        [
+          {
+            "node": "Send a message1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate"
+  },
+  "versionId": "7c0cb715-ef59-4ac9-a983-6d4e55c8a86e",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "f9ea31c76d3e784ff937565c0a3b96372519dffca9afefd486508d7ab5589e3b"
+  },
+  "nodeGroups": [],
+  "id": "L4lMpe4KqeBLSQW0",
+  "tags": []
+}
